@@ -34,4 +34,7 @@ jobs:
 
     # 4. Validera installationer och beroenden
     - name: Verify Dependencies
-      run
+      run: |
+        cmake --version
+        make --version
+        arm-none-eabi-gcc --version
