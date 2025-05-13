@@ -1,0 +1,48 @@
+name: Build Pico Code
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Klona repositoryt
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Installera nödvändiga byggverktyg
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y cmake gcc-arm-none-eabi build-essential
+
+    # 3. Installera Raspberry Pi Pico SDK
+    - name: Setup Pico SDK
+      run: |
+        git clone -b master https://github.com/raspberrypi/pico-sdk.git
+        cd pico-sdk
+        git submodule update --init
+        echo "PICO SDK path is: ${PWD}"
+        echo "PICO_SDK_PATH=${PWD}" >> $GITHUB_ENV
+
+    # 4. Bygga koden
+    - name: Build Project
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ..
+        make
+
+    # 5. Ladda upp byggartefakter
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: pico-build
+        path: build/
