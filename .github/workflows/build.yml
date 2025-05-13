@@ -40,9 +40,14 @@ jobs:
         cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ..
         make
 
-    # 5. Ladda upp byggartefakter
+    # 5. Felsökningssteg: Lista filer i build-katalogen
+    - name: List Build Directory
+      run: |
+        ls -la build/
+
+    # 6. Ladda upp byggartefakter
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v2.2.4
       with:
         name: pico-build
         path: build/
