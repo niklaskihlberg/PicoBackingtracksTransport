@@ -32,22 +32,6 @@ jobs:
         echo "PICO SDK path is: ${PWD}"
         echo "PICO_SDK_PATH=${PWD}" >> $GITHUB_ENV
 
-    # 4. Bygga koden
-    - name: Build Project
-      run: |
-        mkdir -p build
-        cd build
-        cmake -DPICO_SDK_PATH=$PICO_SDK_PATH ..
-        make
-
-    # 5. Felsökningssteg: Lista filer i build-katalogen
-    - name: List Build Directory
-      run: |
-        ls -la build/
-
-    # 6. Ladda upp byggartefakter
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v2.2.4
-      with:
-        name: pico-build
-        path: build/
+    # 4. Validera installationer och beroenden
+    - name: Verify Dependencies
+      run
