@@ -42,7 +42,7 @@ jobs:
 
     # 5. Ladda upp byggartefakter
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: pico-build
         path: build/
