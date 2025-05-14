@@ -15,7 +15,7 @@ pico_sdk_init()
 
 # Tell CMake where to find the executable source file
 add_executable(${PROJECT_NAME} 
-    main.c
+    main.cpp
 )
 
 
