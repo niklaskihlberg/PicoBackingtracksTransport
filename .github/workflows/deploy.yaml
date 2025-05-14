@@ -1,6 +1,6 @@
 name: Deploy new version
 
-# Only deploy when a new tag is pushed
+# Only deploy when a new tag is pushed.
 on:
     commit:
 #    push:
