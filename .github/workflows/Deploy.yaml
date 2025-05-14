@@ -8,7 +8,7 @@ on:
           
 # Must match the project() name in CMakeLists.txt
 env:
-    APP_NAME: PickBackingtracksTransport
+    APP_NAME: PicoBackingtracksTransport
     
 # Allow this workflow to write back to the repository
 permissions:
