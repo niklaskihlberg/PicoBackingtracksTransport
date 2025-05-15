@@ -18,11 +18,8 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
-
 # Inkludera TinyUSB och Pico SDK-bibliotek
 target_sources(PicoBackingtracksTransport PRIVATE main.cpp)
-
-
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(${PROJECT_NAME})
@@ -35,4 +32,3 @@ target_link_libraries(${PROJECT_NAME}
 # Enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
-
