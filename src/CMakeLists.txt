@@ -23,7 +23,7 @@ target_include_directories(PicoBackingtracksTransport PUBLIC
 ${CMAKE_CURRENT_LIST_DIR})
 
 # Inkludera TinyUSB och Pico SDK-bibliotek # Är det den här som sabbar?
-target_sources(PicoBackingtracksTransport PUBLIC main.cpp usb_descriptors.c )
+target_sources(PicoBackingtracksTransport PUBLIC main.cpp usb_descriptors.c
 )
 
 # Create map/bin/hex/uf2 files
