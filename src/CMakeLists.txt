@@ -18,8 +18,8 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
-# Inkludera TinyUSB och Pico SDK-bibliotek
-target_sources(PicoBackingtracksTransport PRIVATE main.cpp)
+# Inkludera TinyUSB och Pico SDK-bibliotek # Är det den här som sabbar?
+# target_sources(PicoBackingtracksTransport PRIVATE main.cpp)
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(${PROJECT_NAME})
