@@ -2,7 +2,10 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Include build functions from Pico SDK
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake
+		$ENV{PICO_SDK_PATH}/lib/tinyusb/examples/device/midi_test/src/tusb_config.h
+		$ENV{PICO_SDK_PATH}/lib/tinyusb/examples/device/midi_test/src/usb_descriptors.c
+)
 
 # Set name of project (as PROJECT_NAME) and C/C   standards
 project(PicoBackingtracksTransport)
