@@ -2,8 +2,8 @@ name: Deploy new version
 
 # Only deploy when a new tag is pushed.
 on:
-    commit:
-#    push:
+
+    push:
 #        tags:
 #          - "v*.*.*"
           
