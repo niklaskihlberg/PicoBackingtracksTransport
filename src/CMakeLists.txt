@@ -18,8 +18,13 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
+# Make sure TinyUSB can find tusb_config.h
+target_include_directories(PicoBackingtracksTransport PUBLIC
+${CMAKE_CURRENT_LIST_DIR})
+
 # Inkludera TinyUSB och Pico SDK-bibliotek # Är det den här som sabbar?
-# target_sources(PicoBackingtracksTransport PRIVATE main.cpp)
+target_sources(PicoBackingtracksTransport PUBLIC main.cpp usb_descriptors.c )
+)
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(${PROJECT_NAME})
