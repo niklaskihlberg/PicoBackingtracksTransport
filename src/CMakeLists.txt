@@ -13,6 +13,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Creates a pico-sdk subdirectory in our project for the libraries
 pico_sdk_init()
 
+# Definiera TinyUSB-konfigurationer
+add_compile_definitions(CFG_TUSB_RHPORT0_MODE=OPT_MODE_DEVICE)
+# add_compile_definitions(CFG_TUSB_RHPORT1_MODE=OPT_MODE_NONE)
+
+
 # Tell CMake where to find the executable source file
 add_executable(${PROJECT_NAME} 
     main.cpp
@@ -38,6 +43,3 @@ target_link_libraries(${PROJECT_NAME}
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
 
-# Definiera TinyUSB-konfigurationer
-add_compile_definitions(CFG_TUSB_RHPORT0_MODE=OPT_MODE_DEVICE)
-# add_compile_definitions(CFG_TUSB_RHPORT1_MODE=OPT_MODE_NONE)
