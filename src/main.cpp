@@ -128,7 +128,7 @@ void loop() {
 
     if (tud_midi_available()) { // Hantera inkommande MIDI-meddelanden
         uint8_t midi[4]; // Skapa en buffert för att lagra inkommande MIDI-meddelanden
-        uint32_t bytes_read = tud_midi_stream_read(0, midi, sizeof(midi)); // Läs inkommande MIDI-meddelanden
+        uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi)); // Läs inkommande MIDI-meddelanden
         if (bytes_read > 0) { // Om det finns inkommande MIDI-meddelanden
             if ((midi[0] & 0xF0) == 0xB0 && midi[1] == 64) { // Kontrollera om det är ett Control Change-meddelande för att styra Loop-LED:en // CC-meddelande för Loop-LED:en
                 if (midi[2] > 0) LoopLED = true; // Om värdet är > 0, sätt på Loop-LED:en
