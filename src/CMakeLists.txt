@@ -37,3 +37,7 @@ target_link_libraries(${PROJECT_NAME}
 # Enable usb output, disable uart output
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
+
+# Definiera TinyUSB-konfigurationer
+add_compile_definitions(CFG_TUSB_RHPORT0_MODE=OPT_MODE_DEVICE)
+# add_compile_definitions(CFG_TUSB_RHPORT1_MODE=OPT_MODE_NONE)
