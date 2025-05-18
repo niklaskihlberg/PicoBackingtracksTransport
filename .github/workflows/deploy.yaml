@@ -34,8 +34,11 @@ jobs:
           git tag "$TAG_NAME"
           git push origin "$TAG_NAME"
 
-      - name: Put environment variable into the env context
-        run: echo "app_name=$APP_NAME" >> $GITHUB_ENV
+      - name: Verify pushed tags
+        run: git tag
+
+      - name: Wait for tag to propagate
+        run: sleep 10
 
       - name: Push to release
         uses: softprops/action-gh-release@v1
