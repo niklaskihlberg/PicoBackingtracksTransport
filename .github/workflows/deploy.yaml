@@ -38,4 +38,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: $NEWTAG
-          files: ${{ env.app_name }}.uf2
+          files: ${{env.app_name}}.uf2
+          files: pico-builder-container:/project/src/build/${APP_NAME}.uf2
