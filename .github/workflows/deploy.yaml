@@ -26,6 +26,14 @@ jobs:
       - name: Copy out .uf2 file
         run: docker cp pico-builder-container:/project/src/build/${APP_NAME}.uf2 ./${APP_NAME}.uf2
 
+      - name: Create and push a new tag
+        run: |
+          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
       - name: Put environment variable into the env context
         run: echo "app_name=$APP_NAME" >> $GITHUB_ENV
 
