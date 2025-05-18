@@ -28,17 +28,23 @@ jobs:
 
       - name: Create and push a new tag
         run: |
-          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"
+          NEWTAG="v$(date +'%Y%m%d%H%M%S')"
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
+          git tag "$NEWTAG"
+          git push origin "$NEWTAG"
+
+      - name: Debug Git State
+        run: |
+          git remote -v
+          git branch -a
+          git log --oneline
 
       - name: Verify pushed tags
         run: git tag
 
-      - name: Wait for tag to propagate
-        run: sleep 10
+      - name: Wait for tag propagation
+        run: sleep 15
 
       - name: Push to release
         uses: softprops/action-gh-release@v1
