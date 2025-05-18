@@ -46,16 +46,17 @@ jobs:
       - name: Wait for tag propagation
         run: sleep 15
 
-      - name: test push
-        run: 
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git tag $NEWTAG
-          git push origin $NEWTAG
-        with:
-          files: ${{ env.app_name }}.uf2
+      #- name: test push
+        #run: 
+          #git config user.name "GitHub Actions"
+          #git config user.email "github-actions@users.noreply.github.com"
+          #git tag $NEWTAG
+          #git push origin $NEWTAG
+        #with:
+          #files: ${{ env.app_name }}.uf2
 
       - name: Push to release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: $NEWTAG
           files: ${{ env.app_name }}.uf2
