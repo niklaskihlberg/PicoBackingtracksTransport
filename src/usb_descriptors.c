@@ -145,8 +145,8 @@ enum {
 // array of pointer to string descriptors
 char const *string_desc_arr[] = {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-  "Niklas ",                     // 1: Manufacturer
-  "NiklasBTContrl",              // 2: Product
+  "Niklas",                     // 1: Manufacturer
+  "Niklas' Transport",              // 2: Product
   NULL,                          // 3: Serials will use unique ID if possible
 };
 

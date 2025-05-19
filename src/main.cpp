@@ -151,7 +151,7 @@ void loop() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
 
     // LOOP BUTTON
-    if (gpio_get(BTN_LOP_PIN)) {
+    if (!gpio_get(BTN_LOP_PIN)) {
         if (!Button_Lop_Pressed && (now - DEBNC_Lop > DEBOUNCE_MS)) {
             Button_Lop_Pressed = true;
             DEBNC_Lop = now;
@@ -167,7 +167,7 @@ void loop() {
     }
 
     // CUE
-    if (gpio_get(BTN_CUE_PIN)) {
+    if (!gpio_get(BTN_CUE_PIN)) {
         if (!Button_Cue_Pressed && (now - DEBNC_Cue > DEBOUNCE_MS)) {
             Button_Cue_Pressed = true;
             DEBNC_Cue = now;
@@ -181,7 +181,7 @@ void loop() {
     }
 
     // BAR
-    if (gpio_get(BTN_BAR_PIN)) {
+    if (!gpio_get(BTN_BAR_PIN)) {
         if (!Button_Bar_Pressed && (now - DEBNC_Bar > DEBOUNCE_MS)) {
             Button_Bar_Pressed = true;
             DEBNC_Bar = now;
@@ -195,7 +195,7 @@ void loop() {
     }
 
     // BIT
-    if (gpio_get(BTN_BIT_PIN)) {
+    if (!gpio_get(BTN_BIT_PIN)) {
         if (!Button_Bit_Pressed && (now - DEBNC_Bit > DEBOUNCE_MS)) {
             Button_Bit_Pressed = true;
             DEBNC_Bit = now;
@@ -209,7 +209,7 @@ void loop() {
     }
 
     // RWD
-    if (gpio_get(BTN_FWD_PIN)) {
+    if (!gpio_get(BTN_FWD_PIN)) {
         if (!Button_Rwd_Pressed && (now - DEBNC_Rwd > DEBOUNCE_MS)) {
             Button_Rwd_Pressed = true;
             DEBNC_Rwd = now;
@@ -224,7 +224,7 @@ void loop() {
     }
 
     // FWD
-    if (gpio_get(BTN_RWD_PIN)) {
+    if (!gpio_get(BTN_RWD_PIN)) {
         if (!Button_Fwd_Pressed && (now - DEBNC_Fwd > DEBOUNCE_MS)) {
             Button_Fwd_Pressed = true;
             DEBNC_Fwd = now;
