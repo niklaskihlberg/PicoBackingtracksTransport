@@ -8,9 +8,11 @@
 #define BTN_CUE_PIN 3
 #define BTN_BAR_PIN 4
 #define BTN_BIT_PIN 5
-#define BTN_FWD_PIN 6
 #define BTN_RWD_PIN 7
+#define BTN_FWD_PIN 6
 #define LED_LOP_PIN 15
+
+#define DEBOUNCE_MS 30
 
 bool LoopLED = false;
 
@@ -28,6 +30,7 @@ bool Cue_Fwd_State = false;
 bool Bar_Fwd_State = false;
 bool Bit_Fwd_State = false;
 
+
 uint8_t Cue_Rwd_Note = 1;
 uint8_t Bar_Rwd_Note = 2;
 uint8_t Bit_Rwd_Note = 3;
@@ -36,6 +39,13 @@ uint8_t Bar_Fwd_Note = 5;
 uint8_t Bit_Fwd_Note = 6;
 
 uint8_t Lop_CC = 100;
+
+uint32_t DEBNC_Lop = 0;
+uint32_t DEBNC_Cue = 0;
+uint32_t DEBNC_Bar = 0;
+uint32_t DEBNC_Bit = 0;
+uint32_t DEBNC_Rwd = 0;
+uint32_t DEBNC_Fwd = 0;
 
 void check_noteOff(bool &active_state, uint8_t note) {
     if (active_state) {
@@ -124,92 +134,105 @@ void setup() {
 }
 
 void loop() {
-    
     tud_task(); // Hantera USB-tasks
 
-    if (tud_midi_available()) { // Hantera inkommande MIDI-meddelanden
-        uint8_t midi[4]; // Skapa en buffert för att lagra inkommande MIDI-meddelanden
-        uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi)); // Läs inkommande MIDI-meddelanden
-        if (bytes_read > 0) { // Om det finns inkommande MIDI-meddelanden
-            if ((midi[0] & 0xF0) == 0xB0 && midi[1] == 64) { // Kontrollera om det är ett Control Change-meddelande för att styra Loop-LED:en // CC-meddelande för Loop-LED:en
-                if (midi[2] > 0) LoopLED = true; // Om värdet är > 0, sätt på Loop-LED:en
-                else LoopLED = false; // Annars, stäng av Loop-LED:en
-                gpio_put(LED_LOP_PIN, LoopLED); // Sätt LED:ens tillstånd
+    if (tud_midi_available()) {
+        uint8_t midi[4];
+        uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi));
+        if (bytes_read > 0) {
+            if ((midi[0] & 0xF0) == 0xB0 && midi[1] == 64) {
+                if (midi[2] > 0) LoopLED = true;
+                else LoopLED = false;
+                gpio_put(LED_LOP_PIN, LoopLED);
             }
         }
     }
 
-    // LOOP BUTTON
-    if (!gpio_get(BTN_LOP_PIN)) { // Om knappen trycks ned
-        if (!Button_Lop_Pressed) { // Skicka MIDI CC-meddelande baserat på LED:ens tillstånd
-            Button_Lop_Pressed = true; // Ändra tillståndet för knappen
-            uint8_t Lop_Val = LoopLED ? 127 : 0; // Om Loop-LED:en är på, sätt värdet till 127, annars 0
-            uint8_t midi[3] = {0xB0, Lop_CC, Lop_Val}; // Skapa MIDI-meddelande // CC, Number, Value
-            tud_midi_stream_write(0, midi, 3); // Skicka MIDI
-            LoopLED = !LoopLED; // Växla LED-tillstånd
-            gpio_put(LED_LOP_PIN, LoopLED); // Växla pinnens tillstånd
-        }
-    }
-    else if (Button_Lop_Pressed) Button_Lop_Pressed = false; // Om knappen släpps, återställ tillståndet
+    uint32_t now = to_ms_since_boot(get_absolute_time());
 
+    // LOOP BUTTON
+    if (gpio_get(BTN_LOP_PIN)) {
+        if (!Button_Lop_Pressed && (now - DEBNC_Lop > DEBOUNCE_MS)) {
+            Button_Lop_Pressed = true;
+            DEBNC_Lop = now;
+            uint8_t Lop_Val = LoopLED ? 127 : 0;
+            uint8_t midi[3] = {0xB0, Lop_CC, Lop_Val};
+            tud_midi_stream_write(0, midi, 3);
+            LoopLED = !LoopLED;
+            gpio_put(LED_LOP_PIN, LoopLED);
+        }
+    } else if (Button_Lop_Pressed && (now - DEBNC_Lop > DEBOUNCE_MS)) {
+        Button_Lop_Pressed = false;
+        DEBNC_Lop = now;
+    }
 
     // CUE
-    if (!gpio_get(BTN_CUE_PIN)) if (!Button_Cue_Pressed) { // Om knappen trycks ned
-        Button_Cue_Pressed = true; // Ändra tillståndet för knappen
-        check_buttons(); // Kolla om någon midi skall skickas
+    if (gpio_get(BTN_CUE_PIN)) {
+        if (!Button_Cue_Pressed && (now - DEBNC_Cue > DEBOUNCE_MS)) {
+            Button_Cue_Pressed = true;
+            DEBNC_Cue = now;
+            check_buttons();
+        }
+    } else if (Button_Cue_Pressed && (now - DEBNC_Cue > DEBOUNCE_MS)) {
+        Button_Cue_Pressed = false;
+        DEBNC_Cue = now;
+        check_noteOff(Cue_Rwd_State, Cue_Rwd_Note);
+        check_noteOff(Cue_Fwd_State, Cue_Fwd_Note);
     }
-    else if (Button_Cue_Pressed) { // Om knappen släpps
-        Button_Cue_Pressed = false; // Ändra tillståndet för knappen
-        check_noteOff(Cue_Rwd_State, Cue_Rwd_Note); // Kolla om någon midi skall skickas
-        check_noteOff(Cue_Fwd_State, Cue_Fwd_Note); // Kolla om någon midi skall skickas
-    }
-    
+
     // BAR
-    if (!gpio_get(BTN_BAR_PIN)) if (!Button_Bar_Pressed) {
-        Button_Bar_Pressed = true;
-        check_buttons();
-    }
-    else if (Button_Bar_Pressed) {   
+    if (gpio_get(BTN_BAR_PIN)) {
+        if (!Button_Bar_Pressed && (now - DEBNC_Bar > DEBOUNCE_MS)) {
+            Button_Bar_Pressed = true;
+            DEBNC_Bar = now;
+            check_buttons();
+        }
+    } else if (Button_Bar_Pressed && (now - DEBNC_Bar > DEBOUNCE_MS)) {
         Button_Bar_Pressed = false;
+        DEBNC_Bar = now;
         check_noteOff(Bar_Rwd_State, Bar_Rwd_Note);
         check_noteOff(Bar_Fwd_State, Bar_Fwd_Note);
     }
 
     // BIT
-    if (!gpio_get(BTN_BIT_PIN)) if (!Button_Bit_Pressed) {
-        Button_Bit_Pressed = true;
-        check_buttons();
-    }
-    else if (Button_Bit_Pressed) {   
+    if (gpio_get(BTN_BIT_PIN)) {
+        if (!Button_Bit_Pressed && (now - DEBNC_Bit > DEBOUNCE_MS)) {
+            Button_Bit_Pressed = true;
+            DEBNC_Bit = now;
+            check_buttons();
+        }
+    } else if (Button_Bit_Pressed && (now - DEBNC_Bit > DEBOUNCE_MS)) {
         Button_Bit_Pressed = false;
+        DEBNC_Bit = now;
         check_noteOff(Bit_Rwd_State, Bit_Rwd_Note);
         check_noteOff(Bit_Fwd_State, Bit_Fwd_Note);
     }
 
-
     // RWD
-    if (!gpio_get(BTN_FWD_PIN)) {
-        if (!Button_Rwd_Pressed) {
+    if (gpio_get(BTN_FWD_PIN)) {
+        if (!Button_Rwd_Pressed && (now - DEBNC_Rwd > DEBOUNCE_MS)) {
             Button_Rwd_Pressed = true;
+            DEBNC_Rwd = now;
             check_buttons();
         }
-    }
-    else if (Button_Rwd_Pressed) {
-        Button_Rwd_Pressed = false;        
+    } else if (Button_Rwd_Pressed && (now - DEBNC_Rwd > DEBOUNCE_MS)) {
+        Button_Rwd_Pressed = false;
+        DEBNC_Rwd = now;
         check_noteOff(Cue_Rwd_State, Cue_Rwd_Note);
         check_noteOff(Bar_Rwd_State, Bar_Rwd_Note);
         check_noteOff(Bit_Rwd_State, Bit_Rwd_Note);
     }
 
     // FWD
-    if (!gpio_get(BTN_RWD_PIN)) {
-        if (!Button_Fwd_Pressed) {
+    if (gpio_get(BTN_RWD_PIN)) {
+        if (!Button_Fwd_Pressed && (now - DEBNC_Fwd > DEBOUNCE_MS)) {
             Button_Fwd_Pressed = true;
+            DEBNC_Fwd = now;
             check_buttons();
         }
-    }
-    else if (Button_Fwd_Pressed) {
+    } else if (Button_Fwd_Pressed && (now - DEBNC_Fwd > DEBOUNCE_MS)) {
         Button_Fwd_Pressed = false;
+        DEBNC_Fwd = now;
         check_noteOff(Cue_Fwd_State, Cue_Fwd_Note);
         check_noteOff(Bar_Fwd_State, Bar_Fwd_Note);
         check_noteOff(Bit_Fwd_State, Bit_Fwd_Note);
