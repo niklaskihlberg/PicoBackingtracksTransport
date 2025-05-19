@@ -5,12 +5,12 @@
 
 // Definiera pinnar för knapparna och LED:en
 #define BTN_LOP_PIN 2
-#define BUTTON2_PIN 3
-#define BUTTON3_PIN 4
-#define BUTTON4_PIN 5
-#define BUTTON5_PIN 6
-#define BUTTON6_PIN 7
-#define LED_PIN 8
+#define BTN_CUE_PIN 3
+#define BTN_BAR_PIN 4
+#define BTN_BIT_PIN 5
+#define BTN_FWD_PIN 6
+#define BTN_RWD_PIN 7
+#define LED_LOP_PIN 15
 
 bool LoopLED = false;
 
@@ -97,30 +97,30 @@ void setup() {
   gpio_set_dir(BTN_LOP_PIN, GPIO_IN);
   gpio_pull_up(BTN_LOP_PIN);
 
-  gpio_init(BUTTON2_PIN);
-  gpio_set_dir(BUTTON2_PIN, GPIO_IN);
-  gpio_pull_up(BUTTON2_PIN);
+  gpio_init(BTN_CUE_PIN);
+  gpio_set_dir(BTN_CUE_PIN, GPIO_IN);
+  gpio_pull_up(BTN_CUE_PIN);
 
-  gpio_init(BUTTON3_PIN);
-  gpio_set_dir(BUTTON3_PIN, GPIO_IN);
-  gpio_pull_up(BUTTON3_PIN);
+  gpio_init(BTN_BAR_PIN);
+  gpio_set_dir(BTN_BAR_PIN, GPIO_IN);
+  gpio_pull_up(BTN_BAR_PIN);
 
-  gpio_init(BUTTON4_PIN);
-  gpio_set_dir(BUTTON4_PIN, GPIO_IN);
-  gpio_pull_up(BUTTON4_PIN);
+  gpio_init(BTN_BIT_PIN);
+  gpio_set_dir(BTN_BIT_PIN, GPIO_IN);
+  gpio_pull_up(BTN_BIT_PIN);
 
-  gpio_init(BUTTON5_PIN);
-  gpio_set_dir(BUTTON5_PIN, GPIO_IN);
-  gpio_pull_up(BUTTON5_PIN);
+  gpio_init(BTN_FWD_PIN);
+  gpio_set_dir(BTN_FWD_PIN, GPIO_IN);
+  gpio_pull_up(BTN_FWD_PIN);
 
-  gpio_init(BUTTON6_PIN);
-  gpio_set_dir(BUTTON6_PIN, GPIO_IN);
-  gpio_pull_up(BUTTON6_PIN);
+  gpio_init(BTN_RWD_PIN);
+  gpio_set_dir(BTN_RWD_PIN, GPIO_IN);
+  gpio_pull_up(BTN_RWD_PIN);
 
   // Konfigurera LED som utgång
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
-  gpio_put(LED_PIN, 0);
+  gpio_init(LED_LOP_PIN);
+  gpio_set_dir(LED_LOP_PIN, GPIO_OUT);
+  gpio_put(LED_LOP_PIN, 0);
 }
 
 void loop() {
@@ -134,7 +134,7 @@ void loop() {
             if ((midi[0] & 0xF0) == 0xB0 && midi[1] == 64) { // Kontrollera om det är ett Control Change-meddelande för att styra Loop-LED:en // CC-meddelande för Loop-LED:en
                 if (midi[2] > 0) LoopLED = true; // Om värdet är > 0, sätt på Loop-LED:en
                 else LoopLED = false; // Annars, stäng av Loop-LED:en
-                gpio_put(LED_PIN, LoopLED); // Sätt LED:ens tillstånd
+                gpio_put(LED_LOP_PIN, LoopLED); // Sätt LED:ens tillstånd
             }
         }
     }
@@ -147,14 +147,14 @@ void loop() {
             uint8_t midi[3] = {0xB0, Lop_CC, Lop_Val}; // Skapa MIDI-meddelande // CC, Number, Value
             tud_midi_stream_write(0, midi, 3); // Skicka MIDI
             LoopLED = !LoopLED; // Växla LED-tillstånd
-            gpio_put(LED_PIN, LoopLED); // Växla pinnens tillstånd
+            gpio_put(LED_LOP_PIN, LoopLED); // Växla pinnens tillstånd
         }
     }
     else if (Button_Lop_Pressed) Button_Lop_Pressed = false; // Om knappen släpps, återställ tillståndet
 
 
     // CUE
-    if (!gpio_get(BUTTON2_PIN)) if (!Button_Cue_Pressed) { // Om knappen trycks ned
+    if (!gpio_get(BTN_CUE_PIN)) if (!Button_Cue_Pressed) { // Om knappen trycks ned
         Button_Cue_Pressed = true; // Ändra tillståndet för knappen
         check_buttons(); // Kolla om någon midi skall skickas
     }
@@ -165,7 +165,7 @@ void loop() {
     }
     
     // BAR
-    if (!gpio_get(BUTTON3_PIN)) if (!Button_Bar_Pressed) {
+    if (!gpio_get(BTN_BAR_PIN)) if (!Button_Bar_Pressed) {
         Button_Bar_Pressed = true;
         check_buttons();
     }
@@ -176,7 +176,7 @@ void loop() {
     }
 
     // BIT
-    if (!gpio_get(BUTTON4_PIN)) if (!Button_Bit_Pressed) {
+    if (!gpio_get(BTN_BIT_PIN)) if (!Button_Bit_Pressed) {
         Button_Bit_Pressed = true;
         check_buttons();
     }
@@ -188,7 +188,7 @@ void loop() {
 
 
     // RWD
-    if (!gpio_get(BUTTON5_PIN)) {
+    if (!gpio_get(BTN_FWD_PIN)) {
         if (!Button_Rwd_Pressed) {
             Button_Rwd_Pressed = true;
             check_buttons();
@@ -202,7 +202,7 @@ void loop() {
     }
 
     // FWD
-    if (!gpio_get(BUTTON6_PIN)) {
+    if (!gpio_get(BTN_RWD_PIN)) {
         if (!Button_Fwd_Pressed) {
             Button_Fwd_Pressed = true;
             check_buttons();
