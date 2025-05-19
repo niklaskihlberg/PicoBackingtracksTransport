@@ -216,9 +216,6 @@ void loop() {
     }
 }
 
-
-
-
 int main() {
   setup();
   while (1) {
@@ -226,5 +223,3 @@ int main() {
   }
   return 0;
 }
-
-//
