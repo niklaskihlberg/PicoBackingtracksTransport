@@ -155,7 +155,7 @@ void loop() {
         if (!Button_Lop_Pressed && (now - DEBNC_Lop > DEBOUNCE_MS)) {
             Button_Lop_Pressed = true;
             DEBNC_Lop = now;
-            uint8_t Lop_Val = LoopLED ? 127 : 0;
+            uint8_t Lop_Val = LoopLED ? 0 : 127;
             uint8_t midi[3] = {0xB0, Lop_CC, Lop_Val};
             tud_midi_stream_write(0, midi, 3);
             LoopLED = !LoopLED;
