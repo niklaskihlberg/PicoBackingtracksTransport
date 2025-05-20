@@ -89,7 +89,7 @@ uint8_t fwdBit = 0x06;  // MIDI-not för BIT/FWD
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
 
-void update_loop(bool state) {
+void update_loop() {
   gpio_put(LED_LOP_PIN, AllInfinito);  // Sätt LED_LOP_PIN till det angivna tillståndet
 }
 
