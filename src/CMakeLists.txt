@@ -2,7 +2,11 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Include build functions from Pico SDK
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake )
+if(APPLE) # Välj SDK-path beroende på plattform
+    include(${PICO_SDK_PATH}/external/pico_sdk_import.cmake) # Använd miljövariabel på Mac
+else()
+    include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake) # Använd miljövariabel på Linux/GitHub Actions
+endif()
 
 # Set name of project (as PROJECT_NAME) and C/C   standards
 project(PicoBackingtracksTransport)
