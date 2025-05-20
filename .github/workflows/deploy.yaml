@@ -30,11 +30,11 @@ jobs:
       - name: Put environment variable into the env context
         run: echo "app_name=$APP_NAME" >> $GITHUB_ENV
             
-      - name: Create a new tag
-        run: NEWTAG="v$(date +'%Y%m%d%H%M%S')"
+      #- name: Create a new tag
+        #run: NEWTAG="v$(date +'%Y%m%d%H%M%S')"
 
       - name: Push to release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: $NEWTAG
+          tag_name: v1.0.0
           files: ${{ env.app_name }}.uf2
