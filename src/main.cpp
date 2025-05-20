@@ -70,8 +70,8 @@ Button btnLop = { false, 0, BTN_LOP_PIN };    // Knappobjekt. State, last_bounce
 Button btnCue = { false, 0, BTN_CUE_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
 Button btnBar = { false, 0, BTN_BAR_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
 Button btnBit = { false, 0, BTN_BIT_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnRwd = { false, 0, BTN_FWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnFwd = { false, 0, BTN_RWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnRwd = { false, 0, BTN_RWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnFwd = { false, 0, BTN_FWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
@@ -111,7 +111,7 @@ void read_midi() {
     uint8_t midi[4];
     uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi));
     
-    for (uint32_t i = 0; i < bytes_read; i++) {
+    for (uint32_t i = 0; i + 2 < bytes_read; i++) {
       
       // Klockan
       if (midi[i] == 0xF8) {
@@ -121,8 +121,16 @@ void read_midi() {
       }
     
       // Loopen
-      if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] > 63) AllInfinito = true;
-      else if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] <= 63) AllInfinito = false;
+      if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] > 63 && !AllInfinito) { // Om AllInfinito är false
+          uint8_t midi_cc[3] = {0xB0, loopCC, 127}; // Skapa MIDI-meddelande // CC + Kanal, CC-nummer, värde
+          tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI
+          AllInfinito = !AllInfinito; // Sätt AllInfinito till true
+      } else 
+      if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] <= 63 && AllInfinito) {
+          uint8_t midi_cc[3] = {0xB0, loopCC, 0}; // Skapa MIDI-meddelande // CC + Kanal, CC-nummer, värde
+          tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI
+          AllInfinito = !AllInfinito; // Sätt AllInfinito till false
+      }
     }
   }
 }
@@ -189,10 +197,17 @@ void update_buttons() {
 
   // LOOP ████████████████████████████████████████████████
   if (pressed(&btnLop)) {
+    
     uint8_t value = AllInfinito ? 0 : 127;
+    
     uint8_t midi_cc[3] = {0xB0, loopCC, value};
     tud_midi_stream_write(0, midi_cc, 3);
+
     AllInfinito = !AllInfinito;
+
+  } else
+  if (released(&btnLop)) {
+    // Ingen handling vid släpp...
   }
   
   // CUE  ████████████████████████████████████████████████
