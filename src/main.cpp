@@ -3,6 +3,9 @@
 #include "tusb.h"
 #include "tusb_config.h"
 
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
+
 #define BTN_LOP_PIN   2     // Definierad pinne för knapp, Loop
 #define BTN_CUE_PIN   3     // Definierad pinne för knapp, Cue
 #define BTN_BAR_PIN   4     // Definierad pinne för knapp, Bar
@@ -19,53 +22,15 @@
 #define LED_FWD_R_PIN 0     // Definierad pinne för LED, Fast-Forward Röd
 #define LED_FWD_G_PIN 1     // Definierad pinne för LED, Fast-Forward Grön
 #define LED_FWD_B_PIN 14    // Definierad pinne för LED, Fast-Forward Blå
+#define LED_KLK_PIN 16      // Definierad pinne för LED, Klockan
 
 #define DEBOUNCE_MS 30  // Definiera debouncetid i millisekunder
 
-typedef struct {
-  bool     state;            // Knappens tillstånd (tryckt eller inte)
-  uint32_t last_bounce;      // Tidpunkt för senaste knapptryckning, de-bounce timer.
-  uint     pin;              // Pinne som knappen är kopplad till
-} Button;
-
-Button btnLop = { false, 0, BTN_LOP_PIN, 100 };  // Knappobjekt. State, last_bounce och pin definieras.
-Button btnCue = { false, 0, BTN_CUE_PIN, 1 };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnBar = { false, 0, BTN_BAR_PIN, 2 };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnBit = { false, 0, BTN_BIT_PIN, 3 };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnRwd = { false, 0, BTN_FWD_PIN, 4 };    // Knappobjekt. State, last_bounce och pin definieras.
-Button btnFwd = { false, 0, BTN_RWD_PIN, 5 };    // Knappobjekt. State, last_bounce och pin definieras.
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
-bool pressed(Button *btn) {
-
-  uint32_t now = to_ms_since_boot(get_absolute_time()); // Kolla klockan
-
-  if (!gpio_get(btn->pin)) { // Kolla om pinnen är låg
-    if (!btn->state && (now - btn->last_bounce > DEBOUNCE_MS)) { // Kolla state och de-bounce
-      btn->state = true; // Sätt state till true
-      btn->last_bounce = now; // Ställ om klockan
-      return true;
-    }
-  }
-  return false;
-}
-
-bool released(Button *btn) {
-
-  uint32_t now = to_ms_since_boot(get_absolute_time()); // Kolla klockan
-
-  if (gpio_get(btn->pin)) { // Kolla ifall pinnen är hög
-    if (btn->state && (now - btn->last_bounce > DEBOUNCE_MS)) { // Kolla state false och de-bounce-tid
-      btn->state = false; // Sätt state till false
-      btn->last_bounce = now; // Ställ om klockan
-      return true;
-    }
-  }
-  return false;
-}
-
-// ██████████████████████████████████████████████████████████████████████████████████████████████████
+// Global tid:
+uint32_t now = 0;  // Variabel för att hålla reda på tiden
 
 // Led-statusar
 bool AllInfinito = false;  // Bool för att hålla reda på om LOOP LED är på eller av
@@ -85,14 +50,84 @@ uint8_t fwdCue = 0x04;  // MIDI-not för CUE/FWD
 uint8_t fwdBar = 0x05;  // MIDI-not för BAR/FWD
 uint8_t fwdBit = 0x06;  // MIDI-not för BIT/FWD
 
+// MIDI-CCs
+uint8_t loopCC = 100;  // MIDI-CC för Loop
+
+// MIDI Klockan
+volatile uint32_t last_midi_klk = 0;
+volatile bool midi_klk_led_state = false;
+
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
+typedef struct {
+  bool     state;            // Knappens tillstånd (tryckt eller inte)
+  uint32_t last_bounce;      // Tidpunkt för senaste knapptryckning, de-bounce timer.
+  uint     pin;              // Pinne som knappen är kopplad till
+} Button;
 
-void update_loop() {
-  gpio_put(LED_LOP_PIN, AllInfinito);  // Sätt LED_LOP_PIN till det angivna tillståndet
+Button btnLop = { false, 0, BTN_LOP_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnCue = { false, 0, BTN_CUE_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnBar = { false, 0, BTN_BAR_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnBit = { false, 0, BTN_BIT_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnRwd = { false, 0, BTN_FWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+Button btnFwd = { false, 0, BTN_RWD_PIN };    // Knappobjekt. State, last_bounce och pin definieras.
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
+
+bool pressed(Button *btn) {
+
+  // uint32_t now = to_ms_since_boot(get_absolute_time()); // Kolla klockan
+
+  if (!gpio_get(btn->pin)) { // Kolla om pinnen är låg
+    if (!btn->state && (now - btn->last_bounce > DEBOUNCE_MS)) { // Kolla state och de-bounce
+      btn->state = true; // Sätt state till true
+      btn->last_bounce = now; // Ställ om klockan
+      return true;
+    }
+  }
+  return false;
 }
 
+bool released(Button *btn) {
+
+  // uint32_t now = to_ms_since_boot(get_absolute_time()); // Kolla klockan
+
+  if (gpio_get(btn->pin)) { // Kolla ifall pinnen är hög
+    if (btn->state && (now - btn->last_bounce > DEBOUNCE_MS)) { // Kolla state false och de-bounce-tid
+      btn->state = false; // Sätt state till false
+      btn->last_bounce = now; // Ställ om klockan
+      return true;
+    }
+  }
+  return false;
+}
+
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
+
+void read_midi() {
+  while (tud_midi_available()) {
+    uint8_t midi[4];
+    uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi));
+    
+    for (uint32_t i = 0; i < bytes_read; i++) {
+      
+      // Klockan
+      if (midi[i] == 0xF8) {
+        midi_klk_led_state = true;
+        last_midi_klk = now;
+        gpio_put(LED_KLK_PIN, 1);
+      }
+    
+      // Loopen
+      if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] > 63) AllInfinito = true;
+      else if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100 && midi[i+2] <= 63) AllInfinito = false;
+    }
+  }
+}
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
 
 void sendMidiNoteOn(uint8_t note, uint8_t velocity = 127) {
   uint8_t note_on[3] = {0x90, note, velocity}; // Skapa MIDI-meddelande // Note On, Note, Velocity
@@ -108,17 +143,59 @@ void sendMidiNoteOf(uint8_t note) {
   else if ((note == fwdCue || note == fwdBar || note == fwdBit) && Avanti) Avanti = false; // Sätt Avanti till false vid uppfyllt villkor...
 }
 
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
+
+void update_klocka() {
+  if (midi_klk_led_state && (now - last_midi_klk > 30)) {
+    gpio_put(LED_KLK_PIN, 0);
+    midi_klk_led_state = false;
+  }
+}
+
+
+void update_loop() {
+  gpio_put(LED_LOP_PIN, AllInfinito);  // Sätt LED_LOP_PIN till det angivna tillståndet
+
+}
+
+void update_ancora_led() {
+  if (Ancora)              { gpio_put(LED_RWD_R_PIN, 1); gpio_put(LED_RWD_G_PIN, 1); gpio_put(LED_RWD_B_PIN, 1);
+  } else if (btnCue.state) { gpio_put(LED_RWD_R_PIN, 0); gpio_put(LED_RWD_G_PIN, 1); gpio_put(LED_RWD_B_PIN, 0);
+  } else if (btnBar.state) { gpio_put(LED_RWD_R_PIN, 0); gpio_put(LED_RWD_G_PIN, 0); gpio_put(LED_RWD_B_PIN, 1);
+  } else if (btnBit.state) { gpio_put(LED_RWD_R_PIN, 1); gpio_put(LED_RWD_G_PIN, 0); gpio_put(LED_RWD_B_PIN, 0);
+  } else if (AllInfinito)  { gpio_put(LED_RWD_R_PIN, 1); gpio_put(LED_RWD_G_PIN, 1); gpio_put(LED_RWD_B_PIN, 0);
+  } else                   { gpio_put(LED_RWD_R_PIN, 0); gpio_put(LED_RWD_G_PIN, 0); gpio_put(LED_RWD_B_PIN, 0);
+  }
+}
+
+void update_avanti_led() {
+  if (Avanti)              { gpio_put(LED_FWD_R_PIN, 1); gpio_put(LED_FWD_G_PIN, 1); gpio_put(LED_FWD_B_PIN, 1);
+  } else if (btnCue.state) { gpio_put(LED_FWD_R_PIN, 0); gpio_put(LED_FWD_G_PIN, 1); gpio_put(LED_FWD_B_PIN, 0);
+  } else if (btnBar.state) { gpio_put(LED_FWD_R_PIN, 0); gpio_put(LED_FWD_G_PIN, 0); gpio_put(LED_FWD_B_PIN, 1);
+  } else if (btnBit.state) { gpio_put(LED_FWD_R_PIN, 1); gpio_put(LED_FWD_G_PIN, 0); gpio_put(LED_FWD_B_PIN, 0);
+  } else if (AllInfinito)  { gpio_put(LED_FWD_R_PIN, 1); gpio_put(LED_FWD_G_PIN, 1); gpio_put(LED_FWD_B_PIN, 0);
+  } else                   { gpio_put(LED_FWD_R_PIN, 0); gpio_put(LED_FWD_G_PIN, 0); gpio_put(LED_FWD_B_PIN, 0);
+  }
+}
+
+void update_leds() {
+  update_ancora_led();
+  update_avanti_led();
+  update_loop();
+}
+
 void update_buttons() {
 
-  // LOOP BUTTON
+  // LOOP ████████████████████████████████████████████████
   if (pressed(&btnLop)) {
     uint8_t value = AllInfinito ? 0 : 127;
-    uint8_t midi_cc[3] = {0xB0, BtnLopNot, value};
+    uint8_t midi_cc[3] = {0xB0, loopCC, value};
     tud_midi_stream_write(0, midi_cc, 3);
     AllInfinito = !AllInfinito;
   }
   
-  // CUE
+  // CUE  ████████████████████████████████████████████████
   if (pressed(&btnCue)) {
     if (!Ancora && btnRwd.state) sendMidiNoteOn(rwdCue);
     if (!Avanti && btnFwd.state) sendMidiNoteOn(fwdCue);
@@ -128,7 +205,7 @@ void update_buttons() {
     if (Avanti && btnFwd.state) sendMidiNoteOf(fwdCue);
   }
 
-  // BAR
+  // BAR  ████████████████████████████████████████████████
   if (pressed(&btnBar)) {
     if (!Ancora && btnRwd.state) sendMidiNoteOn(rwdBar);
     if (!Avanti && btnFwd.state) sendMidiNoteOn(fwdBar);
@@ -138,7 +215,7 @@ void update_buttons() {
     if (Avanti && btnFwd.state) sendMidiNoteOf(fwdBar);
   }
 
-  // BIT
+  // BEAT ████████████████████████████████████████████████
   if (pressed(&btnBit)) {
     if (!Ancora && btnRwd.state) sendMidiNoteOn(rwdBit);
     if (!Avanti && btnFwd.state) sendMidiNoteOn(fwdBit);
@@ -148,7 +225,7 @@ void update_buttons() {
     if (Avanti && btnFwd.state) sendMidiNoteOf(fwdBit);
   }
 
-  // RWD
+  // RWD  ████████████████████████████████████████████████
     if (pressed(&btnRwd)) {
         if (!Ancora && btnCue.state) sendMidiNoteOn(rwdCue);
         if (!Ancora && btnBar.state) sendMidiNoteOn(rwdBar);
@@ -160,7 +237,7 @@ void update_buttons() {
         if (Ancora && btnBit.state) sendMidiNoteOf(rwdBit);
     }
   
-    // FWD
+    // FWD  ████████████████████████████████████████████████
     if (pressed(&btnFwd)) {
         if (!Avanti && btnCue.state) sendMidiNoteOn(fwdCue);
         if (!Avanti && btnBar.state) sendMidiNoteOn(fwdBar);
@@ -173,85 +250,8 @@ void update_buttons() {
     }
 }
 
-void update_ancora_led() {
-    if (Ancora) {
-        gpio_put(LED_RWD_R_PIN, 1);
-        gpio_put(LED_RWD_G_PIN, 1);
-        gpio_put(LED_RWD_B_PIN, 1);
-    } else
-    if (btnCue.state) {
-        gpio_put(LED_RWD_R_PIN, 0);
-        gpio_put(LED_RWD_G_PIN, 1);
-        gpio_put(LED_RWD_B_PIN, 0);
-    } else
-    if (btnBar.state) {
-        gpio_put(LED_RWD_R_PIN, 0);
-        gpio_put(LED_RWD_G_PIN, 0);
-        gpio_put(LED_RWD_B_PIN, 1);
-    } else 
-    if (btnBit.state) {
-        gpio_put(LED_RWD_R_PIN, 1);
-        gpio_put(LED_RWD_G_PIN, 0);
-        gpio_put(LED_RWD_B_PIN, 0);
-    } else
-    if (AllInfinito) {
-        gpio_put(LED_RWD_R_PIN, 1);
-        gpio_put(LED_RWD_G_PIN, 1);
-        gpio_put(LED_RWD_B_PIN, 0);
-    } else {
-        gpio_put(LED_RWD_R_PIN, 0);
-        gpio_put(LED_RWD_G_PIN, 0);
-        gpio_put(LED_RWD_B_PIN, 0);
-    }
-}
 
-void update_avanti_led() {
-    if (Avanti) {
-        gpio_put(LED_FWD_R_PIN, 1);
-        gpio_put(LED_FWD_G_PIN, 1);
-        gpio_put(LED_FWD_B_PIN, 1);
-    } else
-    if (btnCue.state) {
-        gpio_put(LED_FWD_R_PIN, 0);
-        gpio_put(LED_FWD_G_PIN, 1);
-        gpio_put(LED_FWD_B_PIN, 0);
-    } else
-    if (btnBar.state) {
-        gpio_put(LED_FWD_R_PIN, 0);
-        gpio_put(LED_FWD_G_PIN, 0);
-        gpio_put(LED_FWD_B_PIN, 1);
-    } else
-    if (btnBit.state) {
-        gpio_put(LED_FWD_R_PIN, 1);
-        gpio_put(LED_FWD_G_PIN, 0);
-        gpio_put(LED_FWD_B_PIN, 0);
-    } else
-    if (AllInfinito) {
-        gpio_put(LED_FWD_R_PIN, 1);
-        gpio_put(LED_FWD_G_PIN, 1);
-        gpio_put(LED_FWD_B_PIN, 0);
-    } else {
-        gpio_put(LED_FWD_R_PIN, 0);
-        gpio_put(LED_FWD_G_PIN, 0);
-        gpio_put(LED_FWD_B_PIN, 0);
-    }
-}
-
-void update_leds() {
-    update_ancora_led();
-    update_avanti_led();
-    update_loop();
-}
-
-void read_midi() {
-  if (tud_midi_available()) {  // Läs inkommande midi-meddelanden för loop-knappen
-    uint8_t midi[4];
-    uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi));
-    if (bytes_read > 0 && (midi[0] & 0xF0) == 0xB0 && midi[1] == 100 && midi[2] > 63) AllInfinito = true;
-    else AllInfinito = false;
-  }
-}
-
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
 
 void setup() {
 
@@ -278,10 +278,16 @@ void setup() {
   gpio_init(LED_FWD_R_PIN); gpio_set_dir(LED_FWD_R_PIN, GPIO_OUT); gpio_put(LED_FWD_R_PIN, 0);
   gpio_init(LED_FWD_G_PIN); gpio_set_dir(LED_FWD_G_PIN, GPIO_OUT); gpio_put(LED_FWD_G_PIN, 0);
   gpio_init(LED_FWD_B_PIN); gpio_set_dir(LED_FWD_B_PIN, GPIO_OUT); gpio_put(LED_FWD_B_PIN, 0);
-
+  gpio_init(LED_KLK_PIN); gpio_set_dir(LED_KLK_PIN, GPIO_OUT);  gpio_put(LED_KLK_PIN, 0);
 }
 
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
+
 void loop() {
+
+  // Kolla klockan
+  now = to_ms_since_boot(get_absolute_time());
   
   // Initiera TinyUSB
   tud_task();
@@ -292,6 +298,9 @@ void loop() {
   read_midi();
 
 }
+
+
+// ██████████████████████████████████████████████████████████████████████████████████████████████████
 
 int main() {
   setup();
