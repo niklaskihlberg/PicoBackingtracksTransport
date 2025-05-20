@@ -247,7 +247,7 @@ void read_midi() {
   if (tud_midi_available()) {  // Läs inkommande midi-meddelanden för loop-knappen
     uint8_t midi[4];
     uint32_t bytes_read = tud_midi_stream_read(midi, sizeof(midi));
-    if (bytes_read > 0) && (((midi[0] & 0xF0) == 0xB0) && (midi[1] == 100)) && (midi[2] > 63) AllInfinito = true;
+    if (bytes_read > 0 && (midi[0] & 0xF0) == 0xB0 && midi[1] == 100 && midi[2] > 63) AllInfinito = true;
     else AllInfinito = false;
   }
 }
