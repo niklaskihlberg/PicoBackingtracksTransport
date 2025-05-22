@@ -53,7 +53,7 @@ class NiklasBTT(ControlSurface):
                 else:
                     break
             song.current_song_time = prev
-            self.log_message(f"Jumped to previous marker/clip: {prev}")
+            self.log_message("Jumped to previous marker/clip: {}".format(prev))
 
     def goto_next_locator(self, value):
         if value > 0:
@@ -81,7 +81,7 @@ class NiklasBTT(ControlSurface):
                     break
             if next_time is not None:
                 song.current_song_time = next_time
-                self.log_message(f"Jumped to next marker/clip: {next_time}")
+                self.log_message("Jumped to next marker/clip: {}".format(next_time))
 
     def jump_minus_bar(self, value):
         if value > 0:
@@ -111,4 +111,4 @@ class NiklasBTT(ControlSurface):
         if value > 0:
             song = self.song()
             song.loop = not song.loop
-            self.log_message(f"Loop toggled: {song.loop}")
+            self.log_message("Loop toggled: {}".format(song.loop))

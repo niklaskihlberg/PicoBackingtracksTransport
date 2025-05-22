@@ -1,0 +1,38 @@
+# Byggmappar och binärer
+build/
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+*.dis
+*.o
+*.obj
+*.d
+*.a
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Mac-specifikt
+.DS_Store
+
+# Python (om du har Python-filer)
+__pycache__/
+*.pyc
+
+# Loggar
+*.log
+
+# Backup-filer
+*~
+*.swp
+*.swo
