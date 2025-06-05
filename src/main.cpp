@@ -1,9 +1,15 @@
 #include "bsp/board.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "hardware/pwm.h"
 #include "tusb.h"
 #include "tusb_config.h"
 #include <math.h> // För sinf()
+#include "class/midi/midi_device.h"
+
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
@@ -68,10 +74,10 @@ volatile uint32_t last_midi_clock = 0;
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
-typedef struct {
+typedef struct { // Typdefinition för knappstruktur
   bool     stt; // Knappens tillstånd (tryckt eller inte)
-  uint32_t prv; // Tidpunkt för senaste knapptryckning, de-bounce timer. "Previous value" eller "last_pressed time"...
-  uint     pin; // Pinne som knappen är kopplad till
+  uint32_t prv; // Tidpunkt för senaste knapptryckning, de-bounce timer
+  uint8_t  pin; // Pinne som knappen är kopplad till
 } btn;
 
 btn btnLop = { false, 0, BTN_LOP_PIN }; // Knappobjekt. State, last/previous value och pin definieras.
@@ -89,7 +95,8 @@ uint8_t durata = NON; // Definiera durata och initialisera den till ingen aktiv 
 uint32_t timCue = 0, timBar = 0, timBit = 0; // Timers för knapparna: CUE, BAR, BIT
 uint32_t* timDur[3] = { &timCue, &timBar, &timBit }; // Array för att hålla reda på timers för knapparna: CUE, BAR, BIT
 
-
+bool durActiveRwd[3] = {false, false, false}; // Håller reda på om Note On skickats för RWD per duration
+bool durActiveFwd[3] = {false, false, false}; // Håller reda på om Note On skickats för FWD per duration
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
@@ -116,9 +123,9 @@ bool release(btn *btn) {
 }
 
 bool isnArr(const uint8_t* arr, size_t len, uint8_t val) {
-    for (size_t i = 0; i < len; ++i)
-        if (arr[i] == val) return true;
-    return false;
+  for (size_t i = 0; i < len; ++i)
+    if (arr[i] == val) return true;
+  return false;
 }
 
 
@@ -140,15 +147,15 @@ void read_midi() { // Läs av inkommande MIDI-meddelande
 
       // LOOP ████████████████████
       if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 100) { // Om inkommande MIDI är CC och nummret är "100"
-        if (midi[i+2] > 63 && !AllInfinito) { // Om värdet är över "63" och AllInfinito är false
-          uint8_t midi_cc[3] = {0xB0, loopCC, 127}; // Skapa MIDI-meddelande // CC + CH, CC-nummer, värde
-          tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI
+        if (midi[i+2] > 63 && !AllInfinito) { // Om värdet är över 63 och AllInfinito är false
           AllInfinito = !AllInfinito; // Sätt AllInfinito till true
+          // uint8_t midi_cc[3] = {0xB0, loopCC, 127}; // Skapa MIDI-meddelande // CC + CH, CC-nummer, värde
+          // tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI // Depricated, logic in remote_script instead
         } else
-        if (midi[i+2] <= 63 && AllInfinito) { // Om värdet är över "63" och AllInfinito är true
-          uint8_t midi_cc[3] = {0xB0, loopCC, 0}; // Skapa MIDI-meddelande // CC + Kanal, CC-nummer, värde
-          tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI
+        if (midi[i+2] <= 63 && AllInfinito) { // Om värdet är under 63 och AllInfinito är true
           AllInfinito = !AllInfinito; // Sätt AllInfinito till false
+          // uint8_t midi_cc[3] = {0xB0, loopCC, 0}; // Skapa MIDI-meddelande // CC + Kanal, CC-nummer, värde
+          // tud_midi_stream_write(0, midi_cc, 3); // Skicka MIDI // Depricated, logic in remote_script instead
         }
       }
     }
@@ -174,9 +181,7 @@ void sendMidiNoteOf(uint8_t note) {
 
 // ██████████████████████████████████████████████████████████████████████████████████████████████████
 
-
-
-void update_loop() {// Update funktion
+void update_loop_led() {// Update funktion
   gpio_put(LED_LOP_PIN, AllInfinito);  // Sätt LED_LOP_PIN till AllInfinito
 
 }
@@ -237,7 +242,7 @@ void update_leds() { // Update funktion
   update_ancora_led();
   update_avanti_led();
   update_bpm_led();
-  update_loop();
+  update_loop_led();
 }
 
 void update_buttons() {
@@ -253,12 +258,26 @@ void update_buttons() {
 
   for (int i = 0; i < 3; ++i) { // DURATION ████████████████
     if (pressed(btnDur[i])) { // om någon knapp blivit nedtryckt
-      if (!Ancora && btnRwd.stt) sendMidiNoteOn(rwdCue + i);
-      if (!Avanti && btnFwd.stt) sendMidiNoteOn(fwdCue + i);
+      if (!Ancora && btnRwd.stt) {
+        sendMidiNoteOn(rwdCue + i);
+        durActiveRwd[i] = true;
+      }
+      if (!Avanti && btnFwd.stt) {
+        sendMidiNoteOn(fwdCue + i);
+        durActiveFwd[i] = true;
+      }
       *(timDur[i]) = now; // ställ in tiden på den tryckta knappen!
     } else if (release(btnDur[i])) { // kolla om någon knapp släppts
-      if (Ancora && btnRwd.stt) sendMidiNoteOf(rwdCue + i); // skicka note-off
-      if (Avanti && btnFwd.stt) sendMidiNoteOf(fwdCue + i); // skicka note-off
+      // Skicka Note Off för RWD om aktiv
+      if (durActiveRwd[i]) {
+        sendMidiNoteOf(rwdCue + i);
+        durActiveRwd[i] = false;
+      }
+      // Skicka Note Off för FWD om aktiv
+      if (durActiveFwd[i]) {
+        sendMidiNoteOf(fwdCue + i);
+        durActiveFwd[i] = false;
+      }
       *(timDur[i]) = 0;
     }
   }
@@ -302,8 +321,8 @@ void setup() {
   gpio_init(LED_FWD_B_PIN); gpio_set_dir(LED_FWD_B_PIN, GPIO_OUT); gpio_put(LED_FWD_B_PIN, 0); // Konfigurera LED som utgång
   gpio_init(LED_KLK_PIN); gpio_set_dir(LED_KLK_PIN, GPIO_OUT);  gpio_put(LED_KLK_PIN, 0); // Konfigurera LED som utgång
   gpio_set_function(LED_KLK_PIN, GPIO_FUNC_PWM); // Sätt LED_KLK_PIN till PWM-funktion
-  uint slice = pwm_gpio_to_slice_num(LED_KLK_PIN); 
-  pwm_set_enabled(slice, true);
+  uint slice = pwm_gpio_to_slice_num(LED_KLK_PIN); // Hämta slice-nummer för LED_KLK_PIN
+  pwm_set_enabled(slice, true); // Aktivera PWM
 }
 
 
@@ -318,5 +337,19 @@ int main() {
     update_leds(); // Uppdateringar
     read_midi(); // Uppdateringar
   }
+  return 0;
+}
+
+// Dummy-implementationer för TinyUSB MIDI-symboler när bara en stream används
+extern "C" uint32_t tud_midi_n_stream_write(uint8_t instance, uint8_t cable_num, const uint8_t* buffer, uint32_t bufsize) {
+  (void)instance;
+  return tud_midi_stream_write(cable_num, buffer, bufsize);
+}
+extern "C" uint32_t tud_midi_n_available(uint8_t instance, uint8_t cable_num) {
+  (void)instance; (void)cable_num;
+  return 0;
+}
+extern "C" uint32_t tud_midi_n_stream_read(uint8_t instance, uint8_t cable_num, void* buffer, uint32_t bufsize) {
+  (void)instance; (void)cable_num; (void)buffer; (void)bufsize;
   return 0;
 }

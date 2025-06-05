@@ -17,17 +17,24 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 compile_commands.json
+CmakeLists.txt
+build.sh
 
 # VS Code
 .vscode/
 *.code-workspace
+.vscode/*
 
 # Mac-specifikt
 .DS_Store
 
+# Git-specifika filer
+*.gitignore
+
 # Python (om du har Python-filer)
 __pycache__/
 *.pyc
+
 
 # Loggar
 *.log
