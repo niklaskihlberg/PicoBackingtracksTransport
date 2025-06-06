@@ -11,6 +11,9 @@ build/
 *.d
 *.a
 
+# "Kladdpapper"
+src/scratch
+
 # CMake
 CMakeFiles/
 CMakeCache.txt
@@ -19,6 +22,7 @@ Makefile
 compile_commands.json
 CmakeLists.txt
 build.sh
+
 
 # VS Code
 .vscode/

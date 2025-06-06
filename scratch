@@ -23,7 +23,6 @@
  *
  */
 
-#include "tusb_config.h"
 #include "bsp/board_api.h"
 #include "tusb.h"
 
@@ -75,6 +74,11 @@ enum {
 };
 
 #define CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN)
+
+
+
+
+
 
 #if CFG_TUSB_MCU == OPT_MCU_LPC175X_6X || CFG_TUSB_MCU == OPT_MCU_LPC177X_8X || CFG_TUSB_MCU == OPT_MCU_LPC40XX
   // LPC 17xx and 40xx endpoint type (bulk/interrupt/iso) are fixed by its number
@@ -146,8 +150,8 @@ enum {
 // array of pointer to string descriptors
 char const *string_desc_arr[] = {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-  "Niklas",                      // 1: Manufacturer
-  "Niklas BTC",                   // 2: Product
+  "TinyUSB",                     // 1: Manufacturer
+  "TinyUSB Device",              // 2: Product
   NULL,                          // 3: Serials will use unique ID if possible
 };
 
