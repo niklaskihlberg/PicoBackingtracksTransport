@@ -13,6 +13,11 @@ build/
 
 # "Kladdpapper"
 src/scratch
+src/scratch.txt
+preview_printf.sh
+scratch
+printf_extract.py
+
 
 # CMake
 CMakeFiles/
