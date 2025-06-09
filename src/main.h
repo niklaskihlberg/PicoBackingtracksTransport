@@ -28,7 +28,7 @@ enum Pinnar {
 };
 
 
-#define DEBOUNCE 30 // 30 ms debounce-tid för knappar
+#define DEBOUNCE 250 // 30 ms debounce-tid för knappar
 
 extern uint32_t now;  // Variabel för att hålla reda på tiden
 extern uint8_t durata; // Variabel för att bestämma värde åt RWD/FWD (CUE, BAR, BIT)

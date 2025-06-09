@@ -30,22 +30,32 @@ note fwdCue = { false, 0x04 };
 note fwdBar = { false, 0x05 };
 note fwdBit = { false, 0x06 };
 
-bool pressed(btn *btn) { // Kollar om knappen är trycks ned
-  if (!gpio_get(btn->pin)) {
-    if (!btn->stt && (now - btn->prv > DEBOUNCE)) {
-      btn->stt = true;
-      btn->prv = now;
+// const char *stringBtnStt(bool stt) {
+//   stt ? printf("\033[32mPRESSED\033[0m") : printf("\033[31mRELEASED\033[0m");
+// }
+
+void print_btn(btn &btn) {
+  printf("\033[33m[BTN] \033[90m%s %s\n\033[0m", btn.name, btn.stt ? "\033[32mPRESSED\033[0m" : "\033[31mRELEASED\033[0m");
+}
+
+bool pressed(btn &btn) {
+  if (!gpio_get(btn.pin)) {
+    if (!btn.stt && (now - btn.prv > DEBOUNCE)) {
+      btn.stt = true;
+      btn.prv = now;
+      print_btn(btn);
       return true;
     }
   }
   return false;
 }
 
-bool release(btn *btn) { // Kollar om knappen släpps
-  if (gpio_get(btn->pin)) {
-    if (btn->stt && (now - btn->prv > DEBOUNCE)) {
-      btn->stt = false;
-      btn->prv = now;
+bool release(btn &btn) { // Kollar om knappen släpps
+  if (gpio_get(btn.pin)) {
+    if (btn.stt && (now - btn.prv > DEBOUNCE)) {
+      btn.stt = false;
+      btn.prv = 0; // Nollställ tiden
+      print_btn(btn);
       return true;
     }
   }
@@ -59,42 +69,30 @@ void update_durata() {  // Uppdaterar variabeln "durata" baserat på senaste kna
   else if (btnBit.prv >= btnCue.prv && btnBit.prv >= btnBar.prv) durata = DURATA::BIT;
 }
 
-const char *stringBtnStt(bool stt) {
-  if (stt) return "\033[32mPRESSED\033[0m";
-  else return "\033[31mRELEASED\033[0m";  
-}
-
-void print_btn(btn *btn) {
-  // printf("\033[33m[BTN]\033[0m %s, %s \n", btn->name, stringBtnStt(btn->stt) ? "PRESSED" : "RELEASED");
-  printf("\033[33m[BTN]\033[90m %s \033[97m%s \n", btn->name, stringBtnStt(btn->stt) ? "PRESSED" : "RELEASED");
-}
-
-void durata_button_pressed(btn *btn){ // Hjälpfunktion för att hantera upprepad kod vid knapptryckningar
-  btn->stt = true;   // Button state
-  print_btn(btn); // Debugg print
-  btn->prv = now;    // Ställ tiden
+void durata_button_pressed(btn &btn){ // Hjälpfunktion för att hantera upprepad kod vid knapptryckningar
+  // print_btn(btn); // Debugg print
   update_durata();   // Update durata
 }
 
-void durata_button_released(btn *btn){ // Hjälpfunktion för att hantera upprepad kod vid knappsläppningar
-  btn->stt = false;  // Stäng av
-  print_btn(btn); // Debugg print
-  btn->prv = 0;      // Nollställ tiden
+void durata_button_released(btn &btn){ // Hjälpfunktion för att hantera upprepad kod vid knappsläppningar
+  // btn.stt = false;  // Stäng av
+  // print_btn(btn); // Debugg print
+  // btn.prv = 0;      // Nollställ tiden
   update_durata();   // Update durata
 }
 
 
-void midi_action(note *note, ACTION action) { // Hjälpfunktion för att hantera MIDI-åtgärder
+void midi_action(note &note, ACTION action) { // Hjälpfunktion för att hantera MIDI-åtgärder
 
   switch (action) {
     case ACTION::NOTE_ON:
-      sendMidiNoteOn(note->mnn);
-      note->stt = true;
+      sendMidiNoteOn(note.mnn);
+      note.stt = true;
     break;
   
     case ACTION::NOTE_OFF:
-      sendMidiNoteOf(note->mnn); 
-      note->stt = false;
+      sendMidiNoteOf(note.mnn); 
+      note.stt = false;
     break;
 
   }
@@ -113,24 +111,21 @@ void update_buttons() {
   //   ██         ██    ██   ██    ██   ██      
   //   ████████    ██████     ██████    ██      
 
-  if (pressed(&btnLop)) {
+  if (pressed(btnLop)) {
+    sendMidiCC(LOOPCC, 127); // Om AllInfinito är falskt, skicka CC med värde 127
+    printf("\033[36m[MTX] \033[90m%s \033[38;5;229m%s \033[32m%s \033[97mAllInfinito: %s\n\033[0m", "B0", "LOOP", "F7", AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
 
-    btnLop.stt = true;
-    print_btn(&btnLop);
 
-    if (AllInfinito) sendMidiCC(LOOPCC, 0); // Om AllInfinito är sant, skicka CC med värde 0
-    else sendMidiCC(LOOPCC, 127); // Om AllInfinito är falskt, skicka CC med värde 127
-    
-    AllInfinito = !AllInfinito; // Växla AllInfinito-status
+    // if (AllInfinito) {
+    // }
+    // else {
+    // }
   }
 
-  if (release(&btnLop)) { // R E L E A S E
-    
-    if (AllInfinito) sendMidiCC(LOOPCC, 0); // Om AllInfinito är sant, skicka CC med värde 0
-    else sendMidiCC(LOOPCC, 127); // Om AllInfinito är falskt, skicka CC med värde 127
+  if (release(btnLop)) { // R E L E A S E
+    sendMidiCC(LOOPCC, 0); // Om AllInfinito är sant, skicka CC med värde 0
+    // printf("\033[36m[MTX] \033[90m%s \033[38;5;229m%s \033[31m%s \033[97mAllInfinito: %s\n\033[0m", "B0", "LOOP", "00", AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
 
-    btnLop.stt = false;
-    print_btn(&btnLop);
   }
 
 
@@ -141,15 +136,15 @@ void update_buttons() {
   //   ██         ██    ██   ██      
   //    ███████    ██████    ████████  
 
-  if (pressed(&btnCue)) {
-    durata_button_pressed(&btnCue);
-    if (btnRwd.stt) midi_action(&rwdCue, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(&fwdCue, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
+  if (pressed(btnCue)) {
+    update_durata();
+    if (btnRwd.stt) midi_action(rwdCue, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (btnFwd.stt) midi_action(fwdCue, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
   }
-  if (release(&btnCue)) { // R E L E A S E
-    if (rwdCue.stt) midi_action(&rwdCue, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (rwdCue.stt) midi_action(&fwdCue, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    durata_button_released(&btnCue);
+  if (release(btnCue)) { // R E L E A S E
+    if (rwdCue.stt) midi_action(rwdCue, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (rwdCue.stt) midi_action(fwdCue, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
+    update_durata();
   }
 
 
@@ -160,15 +155,15 @@ void update_buttons() {
   // ██    ██   ████████   ██  ██  
   // ███████    ██    ██   ██    ██  
 
-  if (pressed(&btnBar)) {
-    durata_button_pressed(&btnBar);
-    if (btnRwd.stt) midi_action(&rwdBar, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(&fwdBar, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
+  if (pressed(btnBar)) {
+    update_durata();
+    if (btnRwd.stt) midi_action(rwdBar, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (btnFwd.stt) midi_action(fwdBar, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
   }
-  if (release(&btnBar)) { // R E L E A S E
-    if (rwdBar.stt) midi_action(&rwdBar, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (fwdBar.stt) midi_action(&fwdBar, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    durata_button_released(&btnBar);
+  if (release(btnBar)) { // R E L E A S E
+    if (rwdBar.stt) midi_action(rwdBar, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (fwdBar.stt) midi_action(fwdBar, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
+    update_durata();
   }   
 
 
@@ -179,15 +174,15 @@ void update_buttons() {
 // ██    ██   ██         ████████      ██   
 // ███████    ████████   ██    ██      ██   
 
-  if (pressed(&btnBit)) {
-    durata_button_pressed(&btnBit);
-    if (btnRwd.stt) midi_action(&rwdBit, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(&fwdBit, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
+  if (pressed(btnBit)) {
+    update_durata();
+    if (btnRwd.stt) midi_action(rwdBit, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (btnFwd.stt) midi_action(fwdBit, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
   }
-  if (release(&btnBit)) { // R E L E A S E
-    if (rwdBit.stt) midi_action(&rwdBit, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (fwdBit.stt) midi_action(&fwdBit, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    durata_button_released(&btnBit);
+  if (release(btnBit)) { // R E L E A S E
+    if (rwdBit.stt) midi_action(rwdBit, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
+    if (fwdBit.stt) midi_action(fwdBit, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
+    update_durata();
   }
 
 
@@ -198,26 +193,22 @@ void update_buttons() {
   //   ██  ██     ██         ██ ██ ██      ██      ██  ████   ██    ██
   //   ██    ██   ████████   ███  ███    ██████    ██    ██   ███████ 
 
-  if (pressed(&btnRwd)) {
-    btnRwd.stt = true;
-    print_btn(&btnRwd);
+  if (pressed(btnRwd)) {
     switch (durata) {
       case DURATA::IDL: break; // Om ingen knapp är nedtryckt, gör ingenting
-      case DURATA::CUE: midi_action(&rwdCue, NOTE_ON); break; // Om CUE, skicka Note On för rwdCue
-      case DURATA::BAR: midi_action(&rwdBar, NOTE_ON); break; // Om BAR, skicka Note On för rwdBar
-      case DURATA::BIT: midi_action(&rwdBit, NOTE_ON); break; // Om BIT, skicka Note On för rwdBit
+      case DURATA::CUE: midi_action(rwdCue, NOTE_ON); break; // Om CUE, skicka Note On för rwdCue
+      case DURATA::BAR: midi_action(rwdBar, NOTE_ON); break; // Om BAR, skicka Note On för rwdBar
+      case DURATA::BIT: midi_action(rwdBit, NOTE_ON); break; // Om BIT, skicka Note On för rwdBit
     }
   }
 
-  if (release(&btnRwd)) {
+  if (release(btnRwd)) {
     switch (durata) {
       case DURATA::IDL: break; // Om ingen knapp är nedtryckt, gör ingenting
-      case DURATA::CUE: midi_action(&rwdCue, NOTE_OFF); break; // Om CUE, skicka Note Off för rwdCue
-      case DURATA::BAR: midi_action(&rwdBar, NOTE_OFF); break; // Om BAR, skicka Note Off för rwdBar
-      case DURATA::BIT: midi_action(&rwdBit, NOTE_OFF); break; // Om BIT, skicka Note Off för rwdBit
+      case DURATA::CUE: midi_action(rwdCue, NOTE_OFF); break; // Om CUE, skicka Note Off för rwdCue
+      case DURATA::BAR: midi_action(rwdBar, NOTE_OFF); break; // Om BAR, skicka Note Off för rwdBar
+      case DURATA::BIT: midi_action(rwdBit, NOTE_OFF); break; // Om BIT, skicka Note Off för rwdBit
     }
-    btnRwd.stt = false;
-    print_btn(&btnRwd);
   }
 
 
@@ -228,25 +219,21 @@ void update_buttons() {
   //   ████████     ████     ████████   ██  ████      ██         ██   
   //   ██    ██      ██      ██    ██   ██    ██      ██       ██████ 
 
-  if (pressed(&btnFwd)) {
-    btnFwd.stt = true;
-    print_btn(&btnFwd);
+  if (pressed(btnFwd)) {
     switch (durata) {
       case DURATA::IDL: break; // Om ingen knapp är nedtryckt, gör ingenting
-      case DURATA::CUE: midi_action(&fwdCue, NOTE_ON); break; // Om CUE, skicka Note On för fwdCue
-      case DURATA::BAR: midi_action(&fwdBar, NOTE_ON); break; // Om BAR, skicka Note On för fwdBar
-      case DURATA::BIT: midi_action(&fwdBit, NOTE_ON); break; // Om BIT, skicka Note On för fwdBit
+      case DURATA::CUE: midi_action(fwdCue, NOTE_ON); break; // Om CUE, skicka Note On för fwdCue
+      case DURATA::BAR: midi_action(fwdBar, NOTE_ON); break; // Om BAR, skicka Note On för fwdBar
+      case DURATA::BIT: midi_action(fwdBit, NOTE_ON); break; // Om BIT, skicka Note On för fwdBit
     }
   }
 
-  if (release(&btnFwd)) {
+  if (release(btnFwd)) {
     switch (durata) {
       case DURATA::IDL: break; // Om ingen knapp är nedtryckt, gör ingenting
-      case DURATA::CUE: midi_action(&fwdCue, NOTE_OFF); break; // Om CUE, skicka Note Off för fwdCue
-      case DURATA::BAR: midi_action(&fwdBar, NOTE_OFF); break; // Om BAR, skicka Note Off för fwdBar
-      case DURATA::BIT: midi_action(&fwdBit, NOTE_OFF); break; // Om BIT, skicka Note Off för fwdBit
+      case DURATA::CUE: midi_action(fwdCue, NOTE_OFF); break; // Om CUE, skicka Note Off för fwdCue
+      case DURATA::BAR: midi_action(fwdBar, NOTE_OFF); break; // Om BAR, skicka Note Off för fwdBar
+      case DURATA::BIT: midi_action(fwdBit, NOTE_OFF); break; // Om BIT, skicka Note Off för fwdBit
     }
-    btnFwd.stt = false;
-    print_btn(&btnFwd);
   }
 }

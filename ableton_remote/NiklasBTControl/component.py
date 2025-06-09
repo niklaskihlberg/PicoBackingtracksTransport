@@ -27,8 +27,19 @@ class Buttons(Component):
       Logger.info(f"Loop button pressed (MIDI value 127)!")
       try:
         song = self.song
-        song.loop = not song.loop  # Toggle arranger loop
-        Logger.info(f"Arranger loop: {'ON' if song.loop else 'OFF'}")
+        # song.loop = not song.loop  # Toggle arranger loop
+        # Logger.info(f"Arranger loop: {'ON' if song.loop else 'OFF'}")
+        
+        if (song.loop):
+          song.loop = False
+          Logger.info(f"Arranger loop: OFF")
+          self._control_surface.send_midi((0xB0, 0x64, 0))
+          
+        else:
+          song.loop = True
+          Logger.info(f"Arranger loop: ON")
+          self._control_surface.send_midi((0xB0, 0x64, 127))
+          
       except Exception as e:
         Logger.error(f"Failed to toggle arranger loop: {e}")
     else:

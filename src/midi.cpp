@@ -39,11 +39,11 @@ void read_midi() {
         
         if ((midi[i] & 0xF0) == 0xB0 && midi[i+1] == 0x64) { // Fånga MIDI CC 100 (Loop)
           if (midi[i+2] >= 64 && !AllInfinito) { // Om CC 100 är 64 eller mer och AllInfinito är falskt
-            printf("\033[38;5;218m[MRX]\033[90m %02X \033[38;5;229m%s\033[38;5;121m %02X\n\033[0m", midi[i], "LOOP", midi[i+2]);
             AllInfinito = true;
+            printf("\033[38;5;218m[MRX]\033[90m %02X \033[38;5;229m%s\033[38;5;121m %02X \033[97mAllInfinito: %s\n\033[0m", midi[i], "LOOP", midi[i+2], AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
           } else if (midi[i+2] < 64 && AllInfinito) { // Om CC 100 är mindre än 64 och AllInfinito är sant
-            printf("\033[38;5;218m[MRX]\033[90m %02X \033[38;5;229m%s\033[38;5;5m %02X\n\033[0m", midi[i], "LOOP", midi[i+2]);
             AllInfinito = false;
+            printf("\033[38;5;218m[MRX]\033[90m %02X \033[38;5;229m%s\033[38;5;5m %02X \033[97mAllInfinito: %s\n\033[0m", midi[i], "LOOP", midi[i+2], AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
           }
         }
       }
