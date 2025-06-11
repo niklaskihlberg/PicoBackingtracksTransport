@@ -2,7 +2,6 @@ from ableton.v3.control_surface.elements import ButtonElement
 from ableton.v3.control_surface import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from .logger import Logger
 
-
 # --- Elements class with mapped loop_button ---
 class Elements:
   def __init__(self, *a, **k):
@@ -16,6 +15,14 @@ class Elements:
       identifier=100,
       name="Loop_Button"
     )
+    
+    # self.loop_query = ButtonElement(
+    #   is_momentary=True,
+    #   msg_type=MIDI_NOTE_TYPE,
+    #   channel=0,
+    #   identifier=0,
+    #   name="Loop_Query"
+    # )
     
     self.rwd_cue_button = ButtonElement(
       is_momentary=True,

@@ -12,9 +12,10 @@ btn btnRwd = { "RWD",  false, 0, BTN_RWD_PIN, { .rgb = { LED_RWD_R_PIN, LED_RWD_
 btn btnFwd = { "FWD",  false, 0, BTN_FWD_PIN, { .rgb = { LED_FWD_R_PIN, LED_FWD_G_PIN, LED_FWD_B_PIN } } }; // Forward/Avanti-knapp
 
 enum ACTION {
-  NOTE_ON,
-  NOTE_OFF,
+  NOTE_ON, // Enum för att representera MIDI Note On-åtgärd
+  NOTE_OFF, // Enum för att representera MIDI Note Off-åtgärd
 };
+
 
 bool AllInfinito = false; // Om LOOP LED är på eller av och Hur Loop-knappen skall bete sig!
 
@@ -29,10 +30,6 @@ note rwdBit = { false, 0x03 };
 note fwdCue = { false, 0x04 };
 note fwdBar = { false, 0x05 };
 note fwdBit = { false, 0x06 };
-
-// const char *stringBtnStt(bool stt) {
-//   stt ? printf("\033[32mPRESSED\033[0m") : printf("\033[31mRELEASED\033[0m");
-// }
 
 void print_btn(btn &btn) {
   printf("\033[33m[BTN] \033[90m%s %s\n\033[0m", btn.name, btn.stt ? "\033[32mPRESSED\033[0m" : "\033[31mRELEASED\033[0m");
@@ -69,18 +66,6 @@ void update_durata() {  // Uppdaterar variabeln "durata" baserat på senaste kna
   else if (btnBit.prv >= btnCue.prv && btnBit.prv >= btnBar.prv) durata = DURATA::BIT;
 }
 
-void durata_button_pressed(btn &btn){ // Hjälpfunktion för att hantera upprepad kod vid knapptryckningar
-  // print_btn(btn); // Debugg print
-  update_durata();   // Update durata
-}
-
-void durata_button_released(btn &btn){ // Hjälpfunktion för att hantera upprepad kod vid knappsläppningar
-  // btn.stt = false;  // Stäng av
-  // print_btn(btn); // Debugg print
-  // btn.prv = 0;      // Nollställ tiden
-  update_durata();   // Update durata
-}
-
 
 void midi_action(note &note, ACTION action) { // Hjälpfunktion för att hantera MIDI-åtgärder
 
@@ -99,92 +84,29 @@ void midi_action(note &note, ACTION action) { // Hjälpfunktion för att hantera
   
 }
 
-
+void durata_action(note &rwdNot, note &fwdNot, ACTION ACTION) { // Hjälpfunktion för att hantera MIDI-åtgärder vid knapptryckning
+  update_durata();
+  if (btnRwd.stt) midi_action(rwdNot, ACTION); // <<- <<- <<- <<- <<- <<- <<- <<-
+  if (btnFwd.stt) midi_action(fwdNot, ACTION); // ->> ->> ->> ->> ->> ->> ->> ->>
+}
 
 void update_buttons() {
-
-
-
-  //   ░░          ░░░░░░     ░░░░░░    ░░░░░░░ 
-  //   ▒▒         ▒▒    ▒▒   ▒▒    ▒▒   ▒▒    ▒▒
-  //   ▓▓         ▓▓    ▓▓   ▓▓    ▓▓   ▓▓▓▓▓▓▓ 
-  //   ██         ██    ██   ██    ██   ██      
-  //   ████████    ██████     ██████    ██      
 
   if (pressed(btnLop)) {
     sendMidiCC(LOOPCC, 127); // Om AllInfinito är falskt, skicka CC med värde 127
     printf("\033[36m[MTX] \033[90m%s \033[38;5;229m%s \033[32m%s \033[97mAllInfinito: %s\n\033[0m", "B0", "LOOP", "F7", AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
-
-
-    // if (AllInfinito) {
-    // }
-    // else {
-    // }
   }
 
-  if (release(btnLop)) { // R E L E A S E
-    sendMidiCC(LOOPCC, 0); // Om AllInfinito är sant, skicka CC med värde 0
-    // printf("\033[36m[MTX] \033[90m%s \033[38;5;229m%s \033[31m%s \033[97mAllInfinito: %s\n\033[0m", "B0", "LOOP", "00", AllInfinito ? "\033[32mtrue" : "\033[31mfalse");
+  if (release(btnLop)) sendMidiCC(LOOPCC, 0); // Om AllInfinito är sant, skicka CC med värde 0
 
-  }
+  if (pressed(btnCue)) durata_action(rwdCue, fwdCue, NOTE_ON); // Om CUE-knappen trycks ned, uppdatera durata och skicka Note On för rwdCue eller fwdCue
+  if (release(btnCue)) durata_action(rwdCue, fwdCue, NOTE_OFF); // Om CUE-knappen trycks ned, uppdatera durata och skicka Note On för rwdCue eller fwdCue
 
+  if (pressed(btnBar)) durata_action(rwdBar, fwdBar, NOTE_ON); // Om BAR-knappen trycks ned, uppdatera durata och skicka Note On för rwdBar eller fwdBar
+  if (release(btnBar)) durata_action(rwdBar, fwdBar, NOTE_OFF); // Om BAR-knappen trycks ned, uppdatera durata och skicka Note On för rwdBar eller fwdBar
 
-
-  //    ░░░░░░░   ░░    ░░   ░░░░░░░░
-  //   ▒▒         ▒▒    ▒▒   ▒▒      
-  //   ▓▓         ▓▓    ▓▓   ▓▓▓▓▓▓  
-  //   ██         ██    ██   ██      
-  //    ███████    ██████    ████████  
-
-  if (pressed(btnCue)) {
-    update_durata();
-    if (btnRwd.stt) midi_action(rwdCue, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(fwdCue, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
-  }
-  if (release(btnCue)) { // R E L E A S E
-    if (rwdCue.stt) midi_action(rwdCue, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (rwdCue.stt) midi_action(fwdCue, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    update_durata();
-  }
-
-
-
-  // ░░░░░░        ░░      ░░░░░░░ 
-  // ▒▒   ▒▒     ▒▒  ▒▒    ▒▒    ▒▒
-  // ▓▓▓▓▓▓     ▓▓    ▓▓   ▓▓▓▓▓▓▓ 
-  // ██    ██   ████████   ██  ██  
-  // ███████    ██    ██   ██    ██  
-
-  if (pressed(btnBar)) {
-    update_durata();
-    if (btnRwd.stt) midi_action(rwdBar, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(fwdBar, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
-  }
-  if (release(btnBar)) { // R E L E A S E
-    if (rwdBar.stt) midi_action(rwdBar, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (fwdBar.stt) midi_action(fwdBar, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    update_durata();
-  }   
-
-
-
-// ░░░░░░     ░░░░░░░░      ░░      ░░░░░░░░
-// ▒▒   ▒▒    ▒▒          ▒▒  ▒▒       ▒▒   
-// ▓▓▓▓▓▓     ▓▓▓▓▓▓     ▓▓    ▓▓      ▓▓   
-// ██    ██   ██         ████████      ██   
-// ███████    ████████   ██    ██      ██   
-
-  if (pressed(btnBit)) {
-    update_durata();
-    if (btnRwd.stt) midi_action(rwdBit, NOTE_ON); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (btnFwd.stt) midi_action(fwdBit, NOTE_ON); // ->> ->> ->> ->> ->> ->> ->> ->>
-  }
-  if (release(btnBit)) { // R E L E A S E
-    if (rwdBit.stt) midi_action(rwdBit, NOTE_OFF); // <<- <<- <<- <<- <<- <<- <<- <<-
-    if (fwdBit.stt) midi_action(fwdBit, NOTE_OFF); // ->> ->> ->> ->> ->> ->> ->> ->>
-    update_durata();
-  }
-
+  if (pressed(btnBit)) durata_action(rwdBit, fwdBit, NOTE_ON); // Om BIT-knappen trycks ned, uppdatera durata och skicka Note On för rwdBit eller fwdBit
+  if (release(btnBit)) durata_action(rwdBit, fwdBit, NOTE_OFF); // Om BIT-knappen trycks ned, uppdatera durata och skicka Note On för rwdBit eller fwdBit
 
 
   //   ░░░░░░░    ░░░░░░░░   ░░    ░░    ░░░░░░    ░░░   ░░   ░░░░░░░ 

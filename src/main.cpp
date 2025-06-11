@@ -55,6 +55,12 @@ uint8_t LED_PINS[10] = {
 };
 
 
+void init_AllInfinito() {
+  sendMidiCC(0x64, 64); // Query AllInfinito state
+  AllInfinito = false; // Initiera AllInfinito till false
+  printf("\033[38;5;218m[MRX]\033[97m AllInfinito: \033[31mfalse\033[0m\n");
+}
+
 void setup() {
 
   board_init(); // Initiera GPIO
@@ -68,6 +74,8 @@ void setup() {
 
   for (int i = 0; i < 6; i++) setup_btn_pin(BTN_PINS[i]); // Initiera alla knappar
   for (int i = 0; i < 10; i++) setup_led_pin(LED_PINS[i]); // Initiera alla LED:ar
+
+  init_AllInfinito(); // Initiera AllInfinito
 
 }
 
