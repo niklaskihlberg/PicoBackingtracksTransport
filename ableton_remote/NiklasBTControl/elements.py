@@ -15,13 +15,14 @@ class Elements:
       identifier=100,
       name="Loop_Button"
     )
+
     
-    # self.loop_query = ButtonElement(
+    # self.follow_button = ButtonElement(
     #   is_momentary=True,
-    #   msg_type=MIDI_NOTE_TYPE,
+    #   msg_type=MIDI_CC_TYPE,
     #   channel=0,
-    #   identifier=0,
-    #   name="Loop_Query"
+    #   identifier=100,
+    #   name="Follow_Button"
     # )
     
     self.rwd_cue_button = ButtonElement(
