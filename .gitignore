@@ -39,14 +39,16 @@ build.sh
 
 # Git-specifika filer
 *.gitignore
+.gitignore
 
 # Python (om du har Python-filer)
 __pycache__/
 *.pyc
-
+*logger.py
 
 # Loggar
 *.log
+ableton_remote/NiklasBTControl/logger.py
 
 # Backup-filer
 *~
